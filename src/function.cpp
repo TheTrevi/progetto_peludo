@@ -1,30 +1,46 @@
 #include "../include/function.h"
+#include <algorithm>
 #include <cctype>
-#include <map>
 #include <cmath>
-#include <string>
+#include <map>
 #include <stdexcept>
+#include <string>
 
 
-double neg(double a) {return -a;}
+// ===========================================================================
+// Tabelle di funzioni e operatori supportati
+// ===========================================================================
 
-std::map<std::string, double(*)(double)> funzioni = {
-    {"sin", sin}, {"cos", cos}, {"log", log}, {"sinh", sinh}, {"cosh", cosh}
-};
+namespace {
 
 double somma(double a, double b) {return a+b;}
 double diff(double a, double b) {return a-b;}
 double prod(double a, double b) {return a*b;}
 double divisione(double a, double b) {return a/b;}
+double neg(double a) {return -a;}
 
-std::map<std::string, double(*)(double, double)> operatori = {
+const std::map<std::string, double(*)(double)> funzioni = {
+    {"sin", sin}, {"cos", cos}, {"log", log}, {"sinh", sinh}, {"cosh", cosh}
+};
+
+const std::map<std::string, double(*)(double, double)> operatori = {
     {"+", somma}, {"-", diff}, {"*", prod}, {"/", divisione}, {"^", pow}
 };
 
+const std::string simboliOperatori = "+-*/^";
 
-// Restituisce quanti caratteri, dall'inizio di str, formano un numero.
-size_t searchNumber(const std::string& str) {
-    size_t i = 0;
+
+std::string rimuoviSpazi(const std::string& str) {
+    std::string risultato;
+    for (char c : str) {
+        if (!std::isspace(static_cast<unsigned char>(c))) risultato += c;
+    }
+    return risultato;
+}
+
+// Restituisce quanti caratteri, a partire inizio, formano un numero
+size_t searchNumber(const std::string& str, size_t inizio) {
+    size_t i = inizio;
     size_t cifre = 0;
     bool dotFound = false;
 
@@ -32,7 +48,7 @@ size_t searchNumber(const std::string& str) {
 
     while (i < str.length()) {
         char c = str[i];
-        if (std::isdigit(c)) {
+        if (std::isdigit(static_cast<unsigned char>(c))) {
             cifre++;
         } else if ((c == '.' || c == ',') && !dotFound) {
             dotFound = true;
@@ -43,143 +59,65 @@ size_t searchNumber(const std::string& str) {
     }
 
     if (cifre == 0) return 0;
-    return i;
+    return i - inizio;
+}
+
+// Legge una sequenza di lettere a partire da *posizione e la restituisce,
+// facendo avanzare *posizione.
+std::string leggiNome(const std::string& funz, size_t* posizione) {
+    std::string nome;
+    while (*posizione < funz.length() && std::isalpha(static_cast<unsigned char>(funz[*posizione]))) {
+        nome += funz[*posizione];
+        *posizione += 1;
+    }
+    return nome;
 }
 
 
-double Node::calculate(double x, double y) const {
-    if (tipo == NUMERO) return numero;
+void consumaParentesiChiusa(const std::string& funz, size_t* posizione) {
+    if (*posizione >= funz.length() || funz[*posizione] != ')')
+        throw std::invalid_argument("Parentesi ')' non trovata in posizione " + std::to_string(*posizione));
+    *posizione += 1;
+}
+
+// 2.000000 -> 2
+std::string numeroToString(double v) {
+    std::string s = std::to_string(v);
+    size_t punto = s.find('.');
+    if (punto != std::string::npos) {
+        size_t fine = s.find_last_not_of('0');
+        if (fine == punto) fine--;
+        s.erase(fine + 1);
+    }
+    return s;
+}
+
+}  // namespace
+
+
+// ===========================================================================
+// Node
+// ===========================================================================
+
+double Node::calculate(const Vector2& vec) const {
     switch (tipo) {
-        case NUMERO:    return numero;
-        case VARIABILE: return (nomeTipo=="x") ? x :y;
+        case NUMERO:
+            return numero;
+
+        case VARIABILE:
+            return (nomeTipo == "x") ? vec.x : vec.y;
+
         case FUNZIONE: {
             if (!leftPtr) throw std::runtime_error("Funzione senza argomento");
-            return funzioni.at(nomeTipo)(leftPtr->calculate(x, y));
+            return funzioni.at(nomeTipo)(leftPtr->calculate(vec));
         }
 
         case OPERATORE: {
             if (!leftPtr || !rightPtr) throw std::runtime_error("Operatore senza operandi");
-            return operatori.at(nomeTipo)(leftPtr->calculate(x, y), rightPtr->calculate(x, y));
+            return operatori.at(nomeTipo)(leftPtr->calculate(vec), rightPtr->calculate(vec));
         }
     }
-    throw  std::runtime_error("Errore nel calcolo degli operandi");
-}
-
-
-double Function::evaluate(double x, double y) const {
-    if (!root) throw std::runtime_error("Funzione non valida o non inizializzata");
-    return root->calculate(x, y);
-}
-
-bool Function::parseFullParentesis(const std::string& str) {
-    // ((3) * (2) ) * ( (3) - ((4) * (sin(x))))
-    // Rimuovere spazzi
-    std::string funzione="";
-    for(size_t i = 0; i< str.length(); i++) {
-        if (!::isspace(str[i])) funzione += str[i];
-    };
-
-    size_t posizione = 0;
-    try {
-        root = parseExpression(funzione, &posizione);
-        if (root == nullptr)
-            throw std::invalid_argument("Espressione vuota");
-        if (posizione != funzione.length())
-            throw std::invalid_argument("Caratteri in eccesso in posizione " +std::to_string(posizione));
-        return true;
-    } catch (const std::exception&) {
-        delete root;
-        root = nullptr;
-        return false;
-    }
-    return true;
-};
-
-Node* Function::parseExpression(const std::string& funz, size_t* posizione) const {
-    if (*posizione >= funz.length()) throw std::invalid_argument("Errore parseExpression: stringa finita");
-    Node* nodoSinistro = parseTipo(funz, posizione);
-    if (*posizione < funz.length() && std::string("+-*/^").find(funz[*posizione]) != -1) {
-        std::string nomeOperazione = funz.substr(*posizione, 1);
-        *posizione += 1;
-
-        Node* nodoDestro = parseTipo(funz, posizione);
-
-        Node* nodoRoot = new Node(OPERATORE, nomeOperazione, 0);
-        nodoRoot->setLeftPtr(nodoSinistro);
-        nodoRoot->setRightPtr(nodoDestro);
-        return nodoRoot;
-
-    }
-
-    return nodoSinistro;
-}
-
-Node* Function::parseTipo(const std::string& funz, size_t* posizione) const {
-    if (*posizione >= funz.length()) throw std::invalid_argument("Errore parseTipo: stringa finita");
-
-
-    if (funz[*posizione] == '(') {
-        *posizione += 1;
-        Node* nodo = parseExpression(funz, posizione);
-        if (!nodo) throw std::invalid_argument("Espressione vuota tra parentesi");
-        if (*posizione >= funz.length() || funz[*posizione] != ')')
-            throw std::invalid_argument("Parentesi ')' non trovata in posizione " + std::to_string(*posizione));
-        *posizione += 1;
-
-        return nodo;
-    }
-
-    size_t conteggio = searchNumber(funz.substr(*posizione));
-    if (conteggio != 0) {
-        std::string testo = funz.substr(*posizione, conteggio);
-        for (char& c : testo) if (c == ',') c = '.';
-        double num = std::stod(testo);
-        *posizione += conteggio;
-        return new Node(NUMERO, "", num);
-    }
-
-    std::string nome = "";
-
-    while (*posizione < funz.length() && std::isalpha(funz[*posizione])) {
-        nome += funz[*posizione];
-        *posizione += 1;
-    }
-    if (nome.empty()) throw std::invalid_argument("Carattere inatteso in posizione " + std::to_string(*posizione));
-
-
-    if (*posizione < funz.length() && funz[*posizione] == '(') {
-        if (funzioni.count(nome) == 0) throw std::invalid_argument("Funzione sconosciuta: " + nome);
-        *posizione += 1;
-
-
-        Node* nodo = parseExpression(funz, posizione);
-
-        if (!nodo) throw std::invalid_argument("Argomento vuoto in " + nome);
-        if (*posizione >= funz.length() || funz[*posizione] != ')') throw std::invalid_argument("Parentesi ')' non trovata in posizione " + std::to_string(*posizione));
-        *posizione += 1;
-
-        Node* nodoFunz(new Node(FUNZIONE, nome, 0));
-        nodoFunz->setLeftPtr(nodo);
-        return nodoFunz;
-    }
-
-    // variabile
-    if (nome == "x" || nome == "y")
-        return new Node(VARIABILE, nome, 0);
-
-    throw std::invalid_argument("Identificatore sconosciuto: " + nome);
-}
-
-
-static std::string numeroToString(double v) {
-    std::string s = std::to_string(v);
-    size_t punto = s.find('.');
-    if (punto != -1) {
-        size_t fine = s.find_last_not_of('0');
-        if (fine == punto) fine--;// 2. -> 2
-        s.erase(fine + 1);
-    }
-    return s;
+    throw std::runtime_error("Errore nel calcolo degli operandi");
 }
 
 std::string Node::toString() const {
@@ -204,4 +142,144 @@ std::string Node::toString() const {
         }
     }
     return "<tipo sconosciuto>";
+}
+
+
+// ===========================================================================
+// Function: valutazione e derivate
+// ===========================================================================
+
+double Function::evaluate(const Vector2& vec) const {
+    if (!root) throw std::runtime_error("Funzione non valida o non inizializzata");
+    return root->calculate(vec);
+}
+
+double Function::partialX_approx(const Vector2& vec) const {
+    const double h = 1e-5 * std::max(1.0, std::fabs(vec.x));
+    return (evaluate(vec + Vector2(h, 0)) - evaluate(vec - Vector2(h, 0))) / (2 * h);
+}
+
+double Function::partialY_approx(const Vector2& vec) const {
+    const double h = 1e-5 * std::max(1.0, std::fabs(vec.y));
+    return (evaluate(vec + Vector2(0, h)) - evaluate(vec - Vector2(0, h))) / (2 * h);
+}
+
+
+// ===========================================================================
+// Function: parsing
+// ===========================================================================
+
+bool Function::parseFullParentesis(const std::string& str) {
+    delete root;
+    root = nullptr;
+
+    const std::string funzione = rimuoviSpazi(str);
+    size_t posizione = 0;
+
+    try {
+        root = parseExpression(funzione, &posizione);
+        if (posizione != funzione.length())
+            throw std::invalid_argument("Caratteri in eccesso in posizione " + std::to_string(posizione));
+        return true;
+    } catch (const std::exception&) {
+        delete root;
+        root = nullptr;
+        return false;
+    }
+}
+
+
+Node* Function::parseExpression(const std::string& funz, size_t* posizione) const {
+    Node* nodoSinistro = parseOperando(funz, posizione);
+
+    if (*posizione >= funz.length() || simboliOperatori.find(funz[*posizione]) == std::string::npos)
+        return nodoSinistro;
+
+    std::string nomeOperazione = funz.substr(*posizione, 1);
+    *posizione += 1;
+
+
+    Node* nodoDestro = nullptr;
+    try {
+        nodoDestro = parseOperando(funz, posizione);
+
+        Node* nodoRoot = new Node(OPERATORE, nomeOperazione, 0);
+        nodoRoot->setLeftPtr(nodoSinistro);
+        nodoRoot->setRightPtr(nodoDestro);
+        return nodoRoot;
+    } catch (...) {
+        delete nodoSinistro;
+        delete nodoDestro;
+        throw;
+    }
+}
+
+
+
+Node* Function::parseOperando(const std::string& funz, size_t* posizione) const {
+    if (*posizione >= funz.length()) throw std::invalid_argument("Errore parseOperando: stringa finita");
+
+    if (funz[*posizione] == '(')
+        return parseParentesi(funz, posizione);
+
+    size_t lunghezza = searchNumber(funz, *posizione);
+    if (lunghezza != 0)
+        return parseNumero(funz, posizione, lunghezza);
+
+    return parseIdentificatore(funz, posizione);
+}
+
+
+Node* Function::parseParentesi(const std::string& funz, size_t* posizione) const {
+    *posizione += 1;  // salta '('
+    Node* nodo = parseExpression(funz, posizione);
+
+    try {
+        consumaParentesiChiusa(funz, posizione);
+    } catch (...) {
+        delete nodo;  // manca ')' e quindi elimino l'albero già creato.
+        throw;
+    }
+    return nodo;
+}
+
+Node* Function::parseNumero(const std::string& funz, size_t* posizione, size_t lunghezza) const {
+    std::string testo = funz.substr(*posizione, lunghezza);
+    for (char& c : testo) if (c == ',') c = '.';  // std::stod vuole il punto
+    double valore = std::stod(testo);
+    *posizione += lunghezza;
+    return new Node(NUMERO, "", valore);
+}
+
+// Un nome seguito da '(' e' una funzione, altrimenti deve essere una variabile.
+Node* Function::parseIdentificatore(const std::string& funz, size_t* posizione) const {
+    std::string nome = leggiNome(funz, posizione);
+    if (nome.empty()) throw std::invalid_argument("Carattere inatteso in posizione " + std::to_string(*posizione));
+
+    if (*posizione < funz.length() && funz[*posizione] == '(')
+        return parseFunzione(nome, funz, posizione);
+
+    if (nome == "x" || nome == "y")
+        return new Node(VARIABILE, nome, 0);
+
+    throw std::invalid_argument("Identificatore sconosciuto: " + nome);
+}
+
+// nomeFunzione '(' espressione ')'
+Node* Function::parseFunzione(const std::string& nome, const std::string& funz, size_t* posizione) const {
+    if (funzioni.count(nome) == 0) throw std::invalid_argument("Funzione sconosciuta: " + nome);
+    *posizione += 1;  // salta '('
+
+    Node* argomento = parseExpression(funz, posizione);
+    consumaParentesiChiusa(funz, posizione);
+
+    Node* nodoFunz = new Node(FUNZIONE, nome, 0);
+    try {
+        nodoFunz->setLeftPtr(parseExpression(funz, posizione));
+        consumaParentesiChiusa(funz, posizione);
+    } catch (...) {
+        delete nodoFunz;
+        throw;
+    }
+    return nodoFunz;
 }
