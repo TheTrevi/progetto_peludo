@@ -13,6 +13,18 @@ std::string Vector2::toString() const {
     return ss.str();
 }
 
+double Vector2::mod() const {
+    return std::sqrt(x * x + y * y);
+}
+
+Vector2 Vector2::norm() const {
+    double m = mod();
+    if (m < 1e-12) {
+        throw std::invalid_argument("Normalizzazione di un vettore nullo in Vector2");
+    }
+    return Vector2(x / m, y / m);
+}
+
 Vector2 Vector2::operator+(const Vector2& other) const {
     return Vector2(x + other.x, y + other.y);
 }
@@ -78,4 +90,23 @@ bool Vector2::operator!=(const Vector2& other) const {
 std::ostream& operator<<(std::ostream& os, const Vector2& v) {
     os << v.toString();
     return os;
+}
+
+std::istream& operator>>(std::istream& is, Vector2& v) {
+    char c = 0;
+    if (!(is >> std::ws)) return is;
+    if (is.peek() == '(') {
+        is >> c; // consume '('
+        is >> v.x;
+        if (is >> std::ws && is.peek() == ',') {
+            is >> c; // consume ','
+        }
+        is >> v.y;
+        if (is >> std::ws && is.peek() == ')') {
+            is >> c; // consume ')'
+        }
+    } else {
+        is >> v.x >> v.y;
+    }
+    return is;
 }

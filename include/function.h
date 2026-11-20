@@ -59,9 +59,7 @@ class Function {
 
         double evaluate(const Vector2& p) const;
 
-        // Approssimazione derivate parziali.
-        double partialX_approx(const Vector2& p) const;
-        double partialY_approx(const Vector2& p) const;
+        Vector2 gradient(const Vector2& p) const;
 
     private:
         std::string formula;
@@ -74,6 +72,9 @@ class Function {
         Node* parseNumero(const std::string& funz, size_t* posizione, size_t lunghezza) const;
         Node* parseIdentificatore(const std::string& funz, size_t* posizione) const;
         Node* parseFunzione(const std::string& nome, const std::string& funz, size_t* posizione) const;
+        // Approssimazione derivate parziali.
+        double partialX_approx(const Vector2& p) const;
+        double partialY_approx(const Vector2& p) const;
 };
 
 

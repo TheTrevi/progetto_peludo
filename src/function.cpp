@@ -164,6 +164,10 @@ double Function::partialY_approx(const Vector2& vec) const {
     return (evaluate(vec + Vector2(0, h)) - evaluate(vec - Vector2(0, h))) / (2 * h);
 }
 
+Vector2 Function::gradient(const Vector2& p) const {
+    return Vector2(partialX_approx(p), partialY_approx(p));
+}
+
 
 // ===========================================================================
 // Function: parsing

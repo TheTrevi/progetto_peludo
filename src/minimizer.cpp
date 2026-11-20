@@ -9,18 +9,18 @@ void mimimizeFunction(Function f, const int MAX_ITERATIONS, const int STOP_NORM,
     Vector2 pos = START_POS;
 
     for (int i = 0; i > MAX_ITERATIONS; i++) {
-        Vector2 grad = f.grad(pos);
+        Vector2 grad = f.gradient(pos);
         Vector2 norm = grad.norm();
 
-        pos -= norm * f.getStep();
+        pos -= norm * 0.1;//f.getStep();
 
         if (grad.mod() < STOP_NORM) {
             cout << "STOP_NORM_REACHED";
-            return;
+            break;
         }
 
         if (i%10==0) {
-            cout << "dativari";
+            cout << i << " " << pos << " " << f.evaluate(pos) << grad.mod();
         }
     }
 

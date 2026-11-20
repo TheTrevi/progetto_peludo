@@ -1,6 +1,7 @@
 #ifndef VECTOR2_H
 #define VECTOR2_H
 
+#include <iostream>
 #include <string>
 
 class Vector2 {
@@ -13,6 +14,9 @@ public:
     Vector2(double x, double y);
 
     std::string toString() const;
+
+    double mod() const;
+    Vector2 norm() const;
 
     // Operatori aritmetici
     Vector2 operator+(const Vector2& other) const;
@@ -32,6 +36,13 @@ public:
     // Operatori di confronto
     bool operator==(const Vector2& other) const;
     bool operator!=(const Vector2& other) const;
+
+    // Operatori di I/O stream
+    friend std::ostream& operator<<(std::ostream& os, const Vector2& v);
+    friend std::istream& operator>>(std::istream& is, Vector2& v);
 };
+
+std::ostream& operator<<(std::ostream& os, const Vector2& v);
+std::istream& operator>>(std::istream& is, Vector2& v);
 
 #endif // VECTOR2_H
