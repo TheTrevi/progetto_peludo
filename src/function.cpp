@@ -278,12 +278,6 @@ Node* Function::parseFunzione(const std::string& nome, const std::string& funz, 
     consumaParentesiChiusa(funz, posizione);
 
     Node* nodoFunz = new Node(FUNZIONE, nome, 0);
-    try {
-        nodoFunz->setLeftPtr(parseExpression(funz, posizione));
-        consumaParentesiChiusa(funz, posizione);
-    } catch (...) {
-        delete nodoFunz;
-        throw;
-    }
+    nodoFunz->setLeftPtr(argomento);
     return nodoFunz;
 }
