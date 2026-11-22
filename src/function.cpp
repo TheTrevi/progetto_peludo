@@ -13,21 +13,55 @@
 
 namespace {
 
-double somma(double a, double b) {return a+b;}
-double diff(double a, double b) {return a-b;}
-double prod(double a, double b) {return a*b;}
-double divisione(double a, double b) {return a/b;}
-double neg(double a) {return -a;}
-
-const std::map<std::string, double(*)(double)> funzioni = {
-    {"sin", sin}, {"cos", cos}, {"log", log}, {"sinh", sinh}, {"cosh", cosh}
+struct funzDerivata {
+    double(*funzione)(double);
+    double(*derivata)(double);
 };
 
-const std::map<std::string, double(*)(double, double)> operatori = {
-    {"+", somma}, {"-", diff}, {"*", prod}, {"/", divisione}, {"^", pow}
+struct operazioneDerivata {
+    double(*funzione)(double, double);
+    double(*derivataX)(double, double);
+    double(*derivataY)(double, double);
 };
 
 const std::string simboliOperatori = "+-*/^";
+
+
+const std::map<std::string, funzDerivata> funzioni = {
+    {"sin", {sin, cos}},
+    {"cos", {cos, [](double x) {return -sin(x);}}},
+    {"log", {log, [](double x) {return 1/x;}}},
+    {"sinh", {sinh, cosh}},
+    {"cosh", {cosh, sinh}}
+};
+
+const std::map<std::string, operazioneDerivata> operatori = {
+    {"+", {
+        [](double x, double y) {return x+y;},
+        [](double, double) {return 1.0;},
+        [](double, double) {return 1.0;},
+    }},
+    {"-", {
+        [](double x, double y) {return x-y;},
+        [](double, double) {return 1.0;},
+        [](double, double) {return -1.0;},
+    }},
+    {"*", {
+        [](double x, double y) {return x*y;},
+        [](double, double y) {return y;}, // dx x*y = y
+        [](double x, double) {return x;}, // dy x*y = x
+    }},
+    {"/", {
+        [](double x, double y) {return x/y;},
+        [](double, double y) {return 1/y;}, // dx x/y = 1/y
+        [](double x, double y) {return -(x / pow(y,2));}, // dy x/y = -(x/y^2)
+    }},
+    {"^", {
+        [](double x, double y) {return pow(x,y);},
+        [](double x, double y) {return y * pow(x,y-1);}, // dx x^y = y*x^(y-1)
+        [](double x, double y) {return pow(x,y) * log(x);}, // dy x^y = x^y * log(xi)
+    }}
+};
 
 
 std::string rimuoviSpazi(const std::string& str) {
@@ -109,15 +143,78 @@ double Node::calculate(const Vector2& vec) const {
 
         case FUNZIONE: {
             if (!leftPtr) throw std::runtime_error("Funzione senza argomento");
-            return funzioni.at(nomeTipo)(leftPtr->calculate(vec));
+            return funzioni.at(nomeTipo).funzione(leftPtr->calculate(vec));
         }
 
         case OPERATORE: {
             if (!leftPtr || !rightPtr) throw std::runtime_error("Operatore senza operandi");
-            return operatori.at(nomeTipo)(leftPtr->calculate(vec), rightPtr->calculate(vec));
+            return operatori.at(nomeTipo).funzione(leftPtr->calculate(vec), rightPtr->calculate(vec));
         }
     }
     throw std::runtime_error("Errore nel calcolo degli operandi");
+}
+
+ValGrad Node::calculateGradient(const Vector2 &vec) const {
+    switch (tipo) {
+        case NUMERO:
+            return ValGrad{numero, 0,0};
+        case VARIABILE: {
+            return (nomeTipo == "x") ? ValGrad{vec.x, 1.0, 0} : ValGrad{vec.y, 0,1};
+        }
+
+        // Regola catena, esempio:
+        // grad f(t) -> f' * grad t
+        case FUNZIONE: {
+            if (!leftPtr) throw std::runtime_error("Funzione senza argomento");
+            double(*derivata)(double) = funzioni.at(nomeTipo).derivata;
+            double(*funzione)(double) = funzioni.at(nomeTipo).funzione;
+
+            ValGrad expInterna = leftPtr->calculateGradient(vec);
+
+            return ValGrad{
+                funzione(expInterna.val), //f(t)
+                derivata(expInterna.val) * expInterna.dx, // dx f(xy) = f'(x,y) * x'
+                derivata(expInterna.val) * expInterna.dy, // fy f(xy) = f'(x,y) * y'
+            };
+
+        }
+
+        case OPERATORE: {
+            if (!leftPtr || !rightPtr) throw std::runtime_error("Funzione senza argomento");
+
+            double(*funzione)(double, double) = operatori.at(nomeTipo).funzione;
+            double(*derivataX)(double, double) = operatori.at(nomeTipo).derivataX;
+            double(*derivataY)(double, double) = operatori.at(nomeTipo).derivataY;
+
+            ValGrad u = leftPtr->calculateGradient(vec);
+            ValGrad v = rightPtr->calculateGradient(vec);
+
+            double dx = 0, dy = 0;
+
+
+            // Bisogna controllare se le derivate sono nulle, perché per esempio x^2
+            // ha come figlio sx: x e dx: 2, quindi le derivate sinistre sono 0 però
+            // la derivata sinistra della potenza dy x^y = x^y * log(x) viene calcolata
+            // e per valori di x negativi log(x) da NaN che moltiplivato per 0 da NaN quindi
+            // tutte le operazioni dopo avrebbero dato NaN invece di 0.
+            if (u.dx != 0 || u.dy != 0) {
+                double fu = derivataX(u.val, v.val);
+                dx += fu * u.dx;
+                dy += fu * u.dy;
+            }
+            if (v.dx != 0 || v.dy != 0) {
+                double fv = derivataY(u.val, v.val);
+                dx += fv * v.dx;
+                dy += fv * v.dy;
+            }
+
+            return {
+                funzione(u.val, v.val), dx, dy};
+                // fu * u.dx + fv * v.dx, // dx f(x,y) = f_x(x,y) * x' + f_y(x,y) * x'
+                // fu * u.dy + fv * v.dy, // dx f(x,y) = f_x(x,y) * x' + f_y(x,y) * x'
+        }
+    }
+    throw std::runtime_error("Errore nel calcolo della derivata");
 }
 
 std::string Node::toString() const {
@@ -164,8 +261,13 @@ double Function::partialY_approx(const Vector2& vec) const {
     return (evaluate(vec + Vector2(0, h)) - evaluate(vec - Vector2(0, h))) / (2 * h);
 }
 
-Vector2 Function::gradient(const Vector2& p) const {
-    return Vector2(partialX_approx(p), partialY_approx(p));
+Vector2 Function::gradient(const Vector2& vec) const {
+    ValGrad val = root->calculateGradient(vec);
+    return Vector2(val.dx, val.dy);
+}
+
+Vector2 Function::gradientApprox(const Vector2& vec) const {
+    return Vector2(partialX_approx(vec), partialY_approx(vec));
 }
 
 
@@ -217,8 +319,6 @@ Node* Function::parseExpression(const std::string& funz, size_t* posizione) cons
         throw;
     }
 }
-
-
 
 Node* Function::parseOperando(const std::string& funz, size_t* posizione) const {
     if (*posizione >= funz.length()) throw std::invalid_argument("Errore parseOperando: stringa finita");

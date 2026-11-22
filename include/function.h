@@ -8,6 +8,11 @@
 
 enum Tipo {NUMERO, VARIABILE, FUNZIONE, OPERATORE};
 
+struct ValGrad {
+    double val;   // valore della funzione
+    double dx;    // derivata parziale rispetto a x
+    double dy;    // derivata parziale rispetto a y
+};
 
 // Nodo dell'albero sintattico di una funzione f(x, y).
 //   NUMERO:    foglia, contiene il valore in 'numero'
@@ -26,6 +31,7 @@ class Node {
         Node& operator=(const Node&) = delete;
 
         double calculate(const Vector2& p) const;
+        ValGrad calculateGradient(const Vector2 &p) const;
         std::string toString() const;
 
         void setRightPtr(Node* ptr) {rightPtr = ptr;};
@@ -57,9 +63,9 @@ class Function {
         bool parseFullParentesis(const std::string& funzione);
         std::string toString() const {return root->toString();}
 
-        double evaluate(const Vector2& p) const;
-
-        Vector2 gradient(const Vector2& p) const;
+        double evaluate(const Vector2& vec) const;
+        Vector2 gradient(const Vector2& vec) const;
+        Vector2 gradientApprox(const Vector2& vec) const;
 
     private:
         std::string formula;

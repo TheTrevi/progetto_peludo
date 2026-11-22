@@ -1,8 +1,8 @@
 #include <iostream>
 #include <cmath>
 #include <string>
-#include "function.h"
-#include "minimizer.h"
+#include "../include/function.h"
+#include "../include/minimizer.h"
 
 using namespace std;
 
@@ -30,6 +30,12 @@ int main() {
     };
 
     Vector2 start_pos(1.0, 1.0); // da acquisire in input
+
+    for (int i = 0; i < 8; i++) {
+        cout << "\n---f[" << i << "] = "<< f[i].toString() <<" ---" << endl;
+        cout << "valore in 1.0,1.0 :" << f[i].evaluate(start_pos) << endl;
+        cout << "derivata in " << start_pos << ": " << f[i].gradient(start_pos) << " approx: "<< f[i].gradientApprox(start_pos) << endl;
+    }
 
     for (int i = 0; i < 8; i++) {
         cout << "\n--- Minimizzazione f[" << i << "] ---" << endl;
