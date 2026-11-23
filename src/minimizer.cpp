@@ -14,7 +14,8 @@ void mimimizeFunction(const Function& f, const int MAX_ITERATIONS, const double 
 
         if (grad.mod() < STOP_NORM) {
             cout << "STOP_NORM_REACHED" << endl;
-            return;
+            cout << i << "\t" << pos << "\t" << f.evaluate(pos) << "\t" << grad.mod() << endl;
+
         }
 
         Vector2 norm = grad.norm();
@@ -25,9 +26,7 @@ void mimimizeFunction(const Function& f, const int MAX_ITERATIONS, const double 
         }
     }
 
-    cout << "MAX_ITERATIONS_reached" << endl;
-}
+    cout << "MAX_ITERATIONS_REACHED" << endl;
+    cout << MAX_ITERATIONS-1 << "\t" << pos << "\t" << f.evaluate(pos) << "\t" << grad.mod() << endl;
 
-void minimizer(const Function& f, const int MAX_ITERATIONS, const double STOP_NORM, const Vector2 START_POS) {
-    mimimizeFunction(f, MAX_ITERATIONS, STOP_NORM, START_POS);
 }
