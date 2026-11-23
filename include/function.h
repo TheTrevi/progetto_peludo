@@ -2,6 +2,7 @@
 #define FUNCTION_H
 
 #include <cstddef>
+#include <limits>
 #include <string>
 #include "vector2.h"
 
@@ -48,13 +49,36 @@ class Node {
         Node* rightPtr;
 };
 
+struct Intervallo {
+    double min = -std::numeric_limits<double>::infinity();
+    double max =  std::numeric_limits<double>::infinity();
+    bool minIncluso = true;
+    bool maxIncluso = true;
+
+    bool contiene(double v) const {
+        bool sopraMin = minIncluso ? v >= min : v > min;
+        bool sottoMax = maxIncluso ? v <= max : v < max;
+        return sopraMin && sottoMax;
+    }
+
+    Intervallo(double a, double b, bool minIncluso, bool maxIncluso): min(a), max(b), minIncluso(minIncluso), maxIncluso(maxIncluso) {};
+};
+
+struct Dominio {
+    Intervallo x;
+    Intervallo y;
+
+    bool contiene(const Vector2& vec) const {
+        return x.contiene(vec.x) && y.contiene(vec.y);
+    }
+};
 
 // Funzione di due variabili f(x, y), costruita a partire da una stringa.
 // La precedenza la danno le parentesi.
 // esempio ((3 * 2) * (3 - (4 * sin(x)))).
 class Function {
     public:
-        Function(std::string funzione) : formula(funzione), root(nullptr) {parseFullParentesis(funzione);};
+        Function(std::string funzione, Dominio dom, double step=0) : formula(funzione), root(nullptr), dominio(dom), step(step) {parseFullParentesis(funzione);};
         ~Function() {delete root;}
 
         Function(const Function&) = delete;
@@ -63,6 +87,12 @@ class Function {
         bool parseFullParentesis(const std::string& funzione);
         std::string toString() const {return root->toString();}
 
+        Dominio getDominio() const {return dominio;}
+        double getStep() const {return step;}
+
+        void setDominio(Dominio dom) {dominio = dom;}
+        void setStep(double step) {step = step;};
+
         double evaluate(const Vector2& vec) const;
         Vector2 gradient(const Vector2& vec) const;
         Vector2 gradientApprox(const Vector2& vec) const;
@@ -70,6 +100,8 @@ class Function {
     private:
         std::string formula;
         Node* root;
+        Dominio dominio;
+        double step;
 
         // Parsing ricorsivo.
         Node* parseExpression(const std::string& funz, size_t* posizione) const;

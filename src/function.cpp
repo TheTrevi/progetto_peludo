@@ -8,7 +8,7 @@
 
 
 // ===========================================================================
-// Tabelle di funzioni e operatori supportati
+// Utils
 // ===========================================================================
 
 namespace {
@@ -341,7 +341,7 @@ Node* Function::parseParentesi(const std::string& funz, size_t* posizione) const
     try {
         consumaParentesiChiusa(funz, posizione);
     } catch (...) {
-        delete nodo;  // manca ')' e quindi elimino l'albero già creato.
+        delete nodo;
         throw;
     }
     return nodo;
