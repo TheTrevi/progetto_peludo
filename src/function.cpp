@@ -248,6 +248,7 @@ std::string Node::toString() const {
 
 double Function::evaluate(const Vector2& vec) const {
     if (!root) throw std::runtime_error("Funzione non valida o non inizializzata");
+    if (!dominio.contiene(vec)) throw std::runtime_error("Funzione non definita fuori dall'intervallo");
     return root->calculate(vec);
 }
 
@@ -262,6 +263,8 @@ double Function::partialY_approx(const Vector2& vec) const {
 }
 
 Vector2 Function::gradient(const Vector2& vec) const {
+    if (!root) throw std::runtime_error("Funzione non valida o non inizializzata");
+    if (!dominio.contiene(vec)) throw std::runtime_error("Funzione non definita fuori dall'intervallo");
     ValGrad val = root->calculateGradient(vec);
     return Vector2(val.dx, val.dy);
 }

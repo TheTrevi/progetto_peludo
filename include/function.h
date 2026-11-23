@@ -49,19 +49,22 @@ class Node {
         Node* rightPtr;
 };
 
-struct Intervallo {
-    double min = -std::numeric_limits<double>::infinity();
-    double max =  std::numeric_limits<double>::infinity();
-    bool minIncluso = true;
-    bool maxIncluso = true;
+class Intervallo {
+    public:
+        bool contiene(double v) const {
+            bool sopraMin = minIncluso ? v >= min : v > min;
+            bool sottoMax = maxIncluso ? v <= max : v < max;
+            return sopraMin && sottoMax;
+        }
 
-    bool contiene(double v) const {
-        bool sopraMin = minIncluso ? v >= min : v > min;
-        bool sottoMax = maxIncluso ? v <= max : v < max;
-        return sopraMin && sottoMax;
-    }
+        Intervallo();
+        Intervallo(double a, double b, bool minIncluso, bool maxIncluso): min(a), max(b), minIncluso(minIncluso), maxIncluso(maxIncluso) {};
 
-    Intervallo(double a, double b, bool minIncluso, bool maxIncluso): min(a), max(b), minIncluso(minIncluso), maxIncluso(maxIncluso) {};
+    private:
+        double min = -std::numeric_limits<double>::infinity();
+        double max =  std::numeric_limits<double>::infinity();
+        bool minIncluso = true;
+        bool maxIncluso = true;
 };
 
 struct Dominio {
@@ -81,18 +84,20 @@ class Function {
         Function(std::string funzione, Dominio dom, double step=0) : formula(funzione), root(nullptr), dominio(dom), step(step) {parseFullParentesis(funzione);};
         ~Function() {delete root;}
 
+        // NOn si può copiare
         Function(const Function&) = delete;
         Function& operator=(const Function&) = delete;
 
-        bool parseFullParentesis(const std::string& funzione);
         std::string toString() const {return root->toString();}
 
+        // Getters and Setters
         Dominio getDominio() const {return dominio;}
         double getStep() const {return step;}
 
         void setDominio(Dominio dom) {dominio = dom;}
         void setStep(double step) {step = step;};
 
+        // Calcolo valore esatto e gradiente.
         double evaluate(const Vector2& vec) const;
         Vector2 gradient(const Vector2& vec) const;
         Vector2 gradientApprox(const Vector2& vec) const;
@@ -102,6 +107,8 @@ class Function {
         Node* root;
         Dominio dominio;
         double step;
+
+        bool parseFullParentesis(const std::string& funzione);
 
         // Parsing ricorsivo.
         Node* parseExpression(const std::string& funz, size_t* posizione) const;
