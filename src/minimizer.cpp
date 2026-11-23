@@ -16,6 +16,15 @@ void mimimizeFunction(const Function& f, const int MAX_ITERATIONS, const double 
         grad = f.gradient(pos);
 
 
+
+        // Controllo del criterio di arresto sul modulo del gradiente
+        if (grad.mod() < STOP_NORM) {
+            cout << "STOP_NORM_REACHED" << endl;
+            cout << (i-1) << "\t" << pos << "\t" << f.evaluate(pos) << "\t" << grad.mod() << endl;
+            return;
+        }
+
+
         // Calcolo del versore del gradiente e aggiornamento posizione
         Vector2 norm = grad.norm();
         pos -= norm * f.getStep();
@@ -28,13 +37,6 @@ void mimimizeFunction(const Function& f, const int MAX_ITERATIONS, const double 
             return;
         }
 
-
-        // Controllo del criterio di arresto sul modulo del gradiente
-        if (grad.mod() < STOP_NORM) {
-            cout << "STOP_NORM_REACHED" << endl;
-            cout << i << "\t" << pos << "\t" << f.evaluate(pos) << "\t" << grad.mod() << endl;
-            return;
-        }
 
         // Stampa periodica dello stato ogni 10 iterazioni
         if (i % 10 == 0) {
