@@ -7,7 +7,7 @@
 #include "vector2.h"
 
 
-enum Tipo {NUMERO, VARIABILE, FUNZIONE, OPERATORE};
+enum Type {NUMBER, VARIABLE, FUNCTION, OPERATOR};
 
 struct ValGrad {
     double val;   // valore della funzione
@@ -16,15 +16,15 @@ struct ValGrad {
 };
 
 // Nodo dell'albero sintattico di una funzione f(x, y).
-//   NUMERO:    foglia, contiene il valore in 'numero'
-//   VARIABILE: foglia, 'nomeTipo' e' "x" oppure "y"
-//   FUNZIONE:  un figlio (leftPtr), 'nomeTipo'
-//   OPERATORE: due figli (leftPtr, rightPtr), 'nomeTipo'
+//   NUMBER:   foglia, contiene il valore in 'number'
+//   VARIABLE: foglia, 'typeName' e' "x" oppure "y"
+//   FUNCTION: un figlio (leftPtr), 'typeName'
+//   OPERATOR: due figli (leftPtr, rightPtr), 'typeName'
 // Il distruttore elimina i figli.
 
 class Node {
     public:
-        Node(Tipo t, std::string n="", double value=0) : tipo(t), nomeTipo(n), numero(value), leftPtr(nullptr), rightPtr(nullptr) {}
+        Node(Type t, std::string name="", double value=0) : type(t), typeName(name), number(value), leftPtr(nullptr), rightPtr(nullptr) {}
         ~Node() {delete leftPtr; delete rightPtr;}
 
         // Non copiabile.
@@ -42,38 +42,42 @@ class Node {
         Node* getLeftPtr() const {return leftPtr;};
 
     private:
-        Tipo tipo;
-        std::string nomeTipo;
-        double numero;          // valido solo se tipo == NUMERO
+        Type type;
+        std::string typeName;
+        double number;          // valido solo se type == NUMBER
         Node* leftPtr;
         Node* rightPtr;
 };
 
-class Intervallo {
+class Interval {
     public:
-        bool contiene(double v) const {
-            bool sopraMin = minIncluso ? v >= min : v > min;
-            bool sottoMax = maxIncluso ? v <= max : v < max;
-            return sopraMin && sottoMax;
+        bool contains(double v) const {
+            bool aboveMin = minIncluded ? v >= min : v > min;
+            bool belowMax = maxIncluded ? v <= max : v < max;
+            return aboveMin && belowMax;
         }
 
-        Intervallo();
-        Intervallo(double a, double b, bool minIncluso, bool maxIncluso): min(a), max(b), minIncluso(minIncluso), maxIncluso(maxIncluso) {};
+        Interval();
+        Interval(double a, double b, bool minIncluded=true, bool maxIncluded=true): min(a), max(b), minIncluded(minIncluded), maxIncluded(maxIncluded) {};
 
     private:
         double min = -std::numeric_limits<double>::infinity();
         double max =  std::numeric_limits<double>::infinity();
-        bool minIncluso = true;
-        bool maxIncluso = true;
+        bool minIncluded = true;
+        bool maxIncluded = true;
 };
 
-struct Dominio {
-    Intervallo x;
-    Intervallo y;
+class Domain {
+    public:
+        Domain(Interval x, Interval y): x(x), y(y) {};
+        Domain(Interval a): x(a), y(a) {};
 
-    bool contiene(const Vector2& vec) const {
-        return x.contiene(vec.x) && y.contiene(vec.y);
-    }
+        bool contains(const Vector2& vec) const {
+            return x.contains(vec.x) && y.contains(vec.y);
+        }
+    private:
+        Interval x;
+        Interval y;
 };
 
 // Funzione di due variabili f(x, y), costruita a partire da una stringa.
@@ -81,7 +85,7 @@ struct Dominio {
 // esempio ((3 * 2) * (3 - (4 * sin(x)))).
 class Function {
     public:
-        Function(std::string funzione, Dominio dom, double step=0) : formula(funzione), root(nullptr), dominio(dom), step(step) {parseFullParentesis(funzione);};
+        Function(std::string function, Domain dom, double step=0) : formula(function), root(nullptr), domain(dom), step(step) {parseFullParentheses(function);};
         ~Function() {delete root;}
 
         // NOn si può copiare
@@ -91,10 +95,10 @@ class Function {
         std::string toString() const {return root->toString();}
 
         // Getters and Setters
-        Dominio getDominio() const {return dominio;}
+        Domain getDomain() const {return domain;}
         double getStep() const {return step;}
 
-        void setDominio(Dominio dom) {dominio = dom;}
+        void setDomain(Domain dom) {domain = dom;}
         void setStep(double step) {step = step;};
 
         // Calcolo valore esatto e gradiente.
@@ -105,18 +109,18 @@ class Function {
     private:
         std::string formula;
         Node* root;
-        Dominio dominio;
+        Domain domain;
         double step;
 
-        bool parseFullParentesis(const std::string& funzione);
+        bool parseFullParentheses(const std::string& function);
 
         // Parsing ricorsivo.
-        Node* parseExpression(const std::string& funz, size_t* posizione) const;
-        Node* parseOperando(const std::string& funz, size_t* posizione) const;
-        Node* parseParentesi(const std::string& funz, size_t* posizione) const;
-        Node* parseNumero(const std::string& funz, size_t* posizione, size_t lunghezza) const;
-        Node* parseIdentificatore(const std::string& funz, size_t* posizione) const;
-        Node* parseFunzione(const std::string& nome, const std::string& funz, size_t* posizione) const;
+        Node* parseExpression(const std::string& func, size_t* position) const;
+        Node* parseOperand(const std::string& func, size_t* position) const;
+        Node* parseParentheses(const std::string& func, size_t* position) const;
+        Node* parseNumber(const std::string& func, size_t* position, size_t length) const;
+        Node* parseIdentifier(const std::string& func, size_t* position) const;
+        Node* parseFunction(const std::string& name, const std::string& func, size_t* position) const;
         // Approssimazione derivate parziali.
         double partialX_approx(const Vector2& p) const;
         double partialY_approx(const Vector2& p) const;

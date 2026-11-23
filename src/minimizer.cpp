@@ -1,16 +1,16 @@
-#include "minimizer.h"
+#include "../include/minimizer.h"
 #include <iostream>
 
 using namespace std;
 
 void mimimizeFunction(const Function& f, const int MAX_ITERATIONS, const double STOP_NORM, const Vector2 START_POS) {
     Vector2 pos = START_POS;
-    
-    cout << "k\tp[k]\tf(p[k])\tgradMod" << endl;
 
+    cout << "k\tp[k]\tf(p[k])\tgradMod" << endl;
+    Vector2 grad;
 
     for (int i = 0; i < MAX_ITERATIONS; i++) {
-        Vector2 grad = f.gradient(pos);
+        grad = f.gradient(pos);
 
         if (grad.mod() < STOP_NORM) {
             cout << "STOP_NORM_REACHED" << endl;

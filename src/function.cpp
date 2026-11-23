@@ -13,21 +13,21 @@
 
 namespace {
 
-struct funzDerivata {
-    double(*funzione)(double);
-    double(*derivata)(double);
+struct FunctionDerivative {
+    double(*function)(double);
+    double(*derivative)(double);
 };
 
-struct operazioneDerivata {
-    double(*funzione)(double, double);
-    double(*derivataX)(double, double);
-    double(*derivataY)(double, double);
+struct OperationDerivative {
+    double(*function)(double, double);
+    double(*derivativeX)(double, double);
+    double(*derivativeY)(double, double);
 };
 
-const std::string simboliOperatori = "+-*/^";
+const std::string operatorSymbols = "+-*/^";
 
 
-const std::map<std::string, funzDerivata> funzioni = {
+const std::map<std::string, FunctionDerivative> functions = {
     {"sin", {sin, cos}},
     {"cos", {cos, [](double x) {return -sin(x);}}},
     {"log", {log, [](double x) {return 1/x;}}},
@@ -35,7 +35,7 @@ const std::map<std::string, funzDerivata> funzioni = {
     {"cosh", {cosh, sinh}}
 };
 
-const std::map<std::string, operazioneDerivata> operatori = {
+const std::map<std::string, OperationDerivative> operators = {
     {"+", {
         [](double x, double y) {return x+y;},
         [](double, double) {return 1.0;},
@@ -64,18 +64,18 @@ const std::map<std::string, operazioneDerivata> operatori = {
 };
 
 
-std::string rimuoviSpazi(const std::string& str) {
-    std::string risultato;
+std::string removeSpaces(const std::string& str) {
+    std::string result;
     for (char c : str) {
-        if (!std::isspace(static_cast<unsigned char>(c))) risultato += c;
+        if (!std::isspace(static_cast<unsigned char>(c))) result += c;
     }
-    return risultato;
+    return result;
 }
 
-// Restituisce quanti caratteri, a partire inizio, formano un numero
-size_t searchNumber(const std::string& str, size_t inizio) {
-    size_t i = inizio;
-    size_t cifre = 0;
+// Restituisce quanti caratteri, a partire da start, formano un numero
+size_t searchNumber(const std::string& str, size_t start) {
+    size_t i = start;
+    size_t digits = 0;
     bool dotFound = false;
 
     if (i < str.length() && (str[i] == '-' || str[i] == '+')) i++;
@@ -83,7 +83,7 @@ size_t searchNumber(const std::string& str, size_t inizio) {
     while (i < str.length()) {
         char c = str[i];
         if (std::isdigit(static_cast<unsigned char>(c))) {
-            cifre++;
+            digits++;
         } else if ((c == '.' || c == ',') && !dotFound) {
             dotFound = true;
         } else {
@@ -92,36 +92,36 @@ size_t searchNumber(const std::string& str, size_t inizio) {
         i++;
     }
 
-    if (cifre == 0) return 0;
-    return i - inizio;
+    if (digits == 0) return 0;
+    return i - start;
 }
 
-// Legge una sequenza di lettere a partire da *posizione e la restituisce,
-// facendo avanzare *posizione.
-std::string leggiNome(const std::string& funz, size_t* posizione) {
-    std::string nome;
-    while (*posizione < funz.length() && std::isalpha(static_cast<unsigned char>(funz[*posizione]))) {
-        nome += funz[*posizione];
-        *posizione += 1;
+// Legge una sequenza di lettere a partire da *position e la restituisce,
+// facendo avanzare *position.
+std::string readName(const std::string& func, size_t* position) {
+    std::string name;
+    while (*position < func.length() && std::isalpha(static_cast<unsigned char>(func[*position]))) {
+        name += func[*position];
+        *position += 1;
     }
-    return nome;
+    return name;
 }
 
 
-void consumaParentesiChiusa(const std::string& funz, size_t* posizione) {
-    if (*posizione >= funz.length() || funz[*posizione] != ')')
-        throw std::invalid_argument("Parentesi ')' non trovata in posizione " + std::to_string(*posizione));
-    *posizione += 1;
+void consumeClosingParenthesis(const std::string& func, size_t* position) {
+    if (*position >= func.length() || func[*position] != ')')
+        throw std::invalid_argument("Parentesi ')' non trovata in posizione " + std::to_string(*position));
+    *position += 1;
 }
 
 // 2.000000 -> 2
-std::string numeroToString(double v) {
+std::string numberToString(double v) {
     std::string s = std::to_string(v);
-    size_t punto = s.find('.');
-    if (punto != std::string::npos) {
-        size_t fine = s.find_last_not_of('0');
-        if (fine == punto) fine--;
-        s.erase(fine + 1);
+    size_t dot = s.find('.');
+    if (dot != std::string::npos) {
+        size_t end = s.find_last_not_of('0');
+        if (end == dot) end--;
+        s.erase(end + 1);
     }
     return s;
 }
@@ -134,57 +134,57 @@ std::string numeroToString(double v) {
 // ===========================================================================
 
 double Node::calculate(const Vector2& vec) const {
-    switch (tipo) {
-        case NUMERO:
-            return numero;
+    switch (type) {
+        case NUMBER:
+            return number;
 
-        case VARIABILE:
-            return (nomeTipo == "x") ? vec.x : vec.y;
+        case VARIABLE:
+            return (typeName == "x") ? vec.x : vec.y;
 
-        case FUNZIONE: {
+        case FUNCTION: {
             if (!leftPtr) throw std::runtime_error("Funzione senza argomento");
-            return funzioni.at(nomeTipo).funzione(leftPtr->calculate(vec));
+            return functions.at(typeName).function(leftPtr->calculate(vec));
         }
 
-        case OPERATORE: {
+        case OPERATOR: {
             if (!leftPtr || !rightPtr) throw std::runtime_error("Operatore senza operandi");
-            return operatori.at(nomeTipo).funzione(leftPtr->calculate(vec), rightPtr->calculate(vec));
+            return operators.at(typeName).function(leftPtr->calculate(vec), rightPtr->calculate(vec));
         }
     }
     throw std::runtime_error("Errore nel calcolo degli operandi");
 }
 
 ValGrad Node::calculateGradient(const Vector2 &vec) const {
-    switch (tipo) {
-        case NUMERO:
-            return ValGrad{numero, 0,0};
-        case VARIABILE: {
-            return (nomeTipo == "x") ? ValGrad{vec.x, 1.0, 0} : ValGrad{vec.y, 0,1};
+    switch (type) {
+        case NUMBER:
+            return ValGrad{number, 0,0};
+        case VARIABLE: {
+            return (typeName == "x") ? ValGrad{vec.x, 1.0, 0} : ValGrad{vec.y, 0,1};
         }
 
         // Regola catena, esempio:
         // grad f(t) -> f' * grad t
-        case FUNZIONE: {
+        case FUNCTION: {
             if (!leftPtr) throw std::runtime_error("Funzione senza argomento");
-            double(*derivata)(double) = funzioni.at(nomeTipo).derivata;
-            double(*funzione)(double) = funzioni.at(nomeTipo).funzione;
+            double(*derivative)(double) = functions.at(typeName).derivative;
+            double(*function)(double) = functions.at(typeName).function;
 
-            ValGrad expInterna = leftPtr->calculateGradient(vec);
+            ValGrad innerExp = leftPtr->calculateGradient(vec);
 
             return ValGrad{
-                funzione(expInterna.val), //f(t)
-                derivata(expInterna.val) * expInterna.dx, // dx f(xy) = f'(x,y) * x'
-                derivata(expInterna.val) * expInterna.dy, // fy f(xy) = f'(x,y) * y'
+                function(innerExp.val), //f(t)
+                derivative(innerExp.val) * innerExp.dx, // dx f(xy) = f'(x,y) * x'
+                derivative(innerExp.val) * innerExp.dy, // fy f(xy) = f'(x,y) * y'
             };
 
         }
 
-        case OPERATORE: {
+        case OPERATOR: {
             if (!leftPtr || !rightPtr) throw std::runtime_error("Funzione senza argomento");
 
-            double(*funzione)(double, double) = operatori.at(nomeTipo).funzione;
-            double(*derivataX)(double, double) = operatori.at(nomeTipo).derivataX;
-            double(*derivataY)(double, double) = operatori.at(nomeTipo).derivataY;
+            double(*function)(double, double) = operators.at(typeName).function;
+            double(*derivativeX)(double, double) = operators.at(typeName).derivativeX;
+            double(*derivativeY)(double, double) = operators.at(typeName).derivativeY;
 
             ValGrad u = leftPtr->calculateGradient(vec);
             ValGrad v = rightPtr->calculateGradient(vec);
@@ -198,18 +198,18 @@ ValGrad Node::calculateGradient(const Vector2 &vec) const {
             // e per valori di x negativi log(x) da NaN che moltiplivato per 0 da NaN quindi
             // tutte le operazioni dopo avrebbero dato NaN invece di 0.
             if (u.dx != 0 || u.dy != 0) {
-                double fu = derivataX(u.val, v.val);
+                double fu = derivativeX(u.val, v.val);
                 dx += fu * u.dx;
                 dy += fu * u.dy;
             }
             if (v.dx != 0 || v.dy != 0) {
-                double fv = derivataY(u.val, v.val);
+                double fv = derivativeY(u.val, v.val);
                 dx += fv * v.dx;
                 dy += fv * v.dy;
             }
 
             return {
-                funzione(u.val, v.val), dx, dy};
+                function(u.val, v.val), dx, dy};
                 // fu * u.dx + fv * v.dx, // dx f(x,y) = f_x(x,y) * x' + f_y(x,y) * x'
                 // fu * u.dy + fv * v.dy, // dx f(x,y) = f_x(x,y) * x' + f_y(x,y) * x'
         }
@@ -218,24 +218,24 @@ ValGrad Node::calculateGradient(const Vector2 &vec) const {
 }
 
 std::string Node::toString() const {
-    switch (tipo) {
-        case NUMERO: {
-            std::string testo = numeroToString(numero);
-            return (numero < 0) ? "(" + testo + ")" : testo;
+    switch (type) {
+        case NUMBER: {
+            std::string text = numberToString(number);
+            return (number < 0) ? "(" + text + ")" : text;
         }
 
-        case VARIABILE:
-            return nomeTipo;
+        case VARIABLE:
+            return typeName;
 
-        case FUNZIONE: {
+        case FUNCTION: {
             std::string arg = leftPtr ? leftPtr->toString() : "<mancante>";
-            return nomeTipo + "(" + arg + ")";
+            return typeName + "(" + arg + ")";
         }
 
-        case OPERATORE: {
-            std::string sx = leftPtr  ? leftPtr->toString()  : "<mancante>";
-            std::string dx = rightPtr ? rightPtr->toString() : "<mancante>";
-            return "(" + sx + " " + nomeTipo + " " + dx + ")";
+        case OPERATOR: {
+            std::string left  = leftPtr  ? leftPtr->toString()  : "<mancante>";
+            std::string right = rightPtr ? rightPtr->toString() : "<mancante>";
+            return "(" + left + " " + typeName + " " + right + ")";
         }
     }
     return "<tipo sconosciuto>";
@@ -248,7 +248,7 @@ std::string Node::toString() const {
 
 double Function::evaluate(const Vector2& vec) const {
     if (!root) throw std::runtime_error("Funzione non valida o non inizializzata");
-    if (!dominio.contiene(vec)) throw std::runtime_error("Funzione non definita fuori dall'intervallo");
+    // if (!domain.contains(vec)) throw std::runtime_error("Funzione non definita fuori dall'intervallo");
     return root->calculate(vec);
 }
 
@@ -264,7 +264,7 @@ double Function::partialY_approx(const Vector2& vec) const {
 
 Vector2 Function::gradient(const Vector2& vec) const {
     if (!root) throw std::runtime_error("Funzione non valida o non inizializzata");
-    if (!dominio.contiene(vec)) throw std::runtime_error("Funzione non definita fuori dall'intervallo");
+    // if (!domain.contains(vec)) throw std::runtime_error("Funzione non definita fuori dall'intervallo");
     ValGrad val = root->calculateGradient(vec);
     return Vector2(val.dx, val.dy);
 }
@@ -278,17 +278,17 @@ Vector2 Function::gradientApprox(const Vector2& vec) const {
 // Function: parsing
 // ===========================================================================
 
-bool Function::parseFullParentesis(const std::string& str) {
+bool Function::parseFullParentheses(const std::string& str) {
     delete root;
     root = nullptr;
 
-    const std::string funzione = rimuoviSpazi(str);
-    size_t posizione = 0;
+    const std::string function = removeSpaces(str);
+    size_t position = 0;
 
     try {
-        root = parseExpression(funzione, &posizione);
-        if (posizione != funzione.length())
-            throw std::invalid_argument("Caratteri in eccesso in posizione " + std::to_string(posizione));
+        root = parseExpression(function, &position);
+        if (position != function.length())
+            throw std::invalid_argument("Caratteri in eccesso in posizione " + std::to_string(position));
         return true;
     } catch (const std::exception&) {
         delete root;
@@ -298,89 +298,89 @@ bool Function::parseFullParentesis(const std::string& str) {
 }
 
 
-Node* Function::parseExpression(const std::string& funz, size_t* posizione) const {
-    Node* nodoSinistro = parseOperando(funz, posizione);
+Node* Function::parseExpression(const std::string& func, size_t* position) const {
+    Node* leftNode = parseOperand(func, position);
 
-    if (*posizione >= funz.length() || simboliOperatori.find(funz[*posizione]) == std::string::npos)
-        return nodoSinistro;
+    if (*position >= func.length() || operatorSymbols.find(func[*position]) == std::string::npos)
+        return leftNode;
 
-    std::string nomeOperazione = funz.substr(*posizione, 1);
-    *posizione += 1;
+    std::string operationName = func.substr(*position, 1);
+    *position += 1;
 
 
-    Node* nodoDestro = nullptr;
+    Node* rightNode = nullptr;
     try {
-        nodoDestro = parseOperando(funz, posizione);
+        rightNode = parseOperand(func, position);
 
-        Node* nodoRoot = new Node(OPERATORE, nomeOperazione, 0);
-        nodoRoot->setLeftPtr(nodoSinistro);
-        nodoRoot->setRightPtr(nodoDestro);
-        return nodoRoot;
+        Node* rootNode = new Node(OPERATOR, operationName, 0);
+        rootNode->setLeftPtr(leftNode);
+        rootNode->setRightPtr(rightNode);
+        return rootNode;
     } catch (...) {
-        delete nodoSinistro;
-        delete nodoDestro;
+        delete leftNode;
+        delete rightNode;
         throw;
     }
 }
 
-Node* Function::parseOperando(const std::string& funz, size_t* posizione) const {
-    if (*posizione >= funz.length()) throw std::invalid_argument("Errore parseOperando: stringa finita");
+Node* Function::parseOperand(const std::string& func, size_t* position) const {
+    if (*position >= func.length()) throw std::invalid_argument("Errore parseOperand: stringa finita");
 
-    if (funz[*posizione] == '(')
-        return parseParentesi(funz, posizione);
+    if (func[*position] == '(')
+        return parseParentheses(func, position);
 
-    size_t lunghezza = searchNumber(funz, *posizione);
-    if (lunghezza != 0)
-        return parseNumero(funz, posizione, lunghezza);
+    size_t length = searchNumber(func, *position);
+    if (length != 0)
+        return parseNumber(func, position, length);
 
-    return parseIdentificatore(funz, posizione);
+    return parseIdentifier(func, position);
 }
 
 
-Node* Function::parseParentesi(const std::string& funz, size_t* posizione) const {
-    *posizione += 1;  // salta '('
-    Node* nodo = parseExpression(funz, posizione);
+Node* Function::parseParentheses(const std::string& func, size_t* position) const {
+    *position += 1;  // salta '('
+    Node* node = parseExpression(func, position);
 
     try {
-        consumaParentesiChiusa(funz, posizione);
+        consumeClosingParenthesis(func, position);
     } catch (...) {
-        delete nodo;
+        delete node;
         throw;
     }
-    return nodo;
+    return node;
 }
 
-Node* Function::parseNumero(const std::string& funz, size_t* posizione, size_t lunghezza) const {
-    std::string testo = funz.substr(*posizione, lunghezza);
-    for (char& c : testo) if (c == ',') c = '.';  // std::stod vuole il punto
-    double valore = std::stod(testo);
-    *posizione += lunghezza;
-    return new Node(NUMERO, "", valore);
+Node* Function::parseNumber(const std::string& func, size_t* position, size_t length) const {
+    std::string text = func.substr(*position, length);
+    for (char& c : text) if (c == ',') c = '.';  // std::stod vuole il punto
+    double value = std::stod(text);
+    *position += length;
+    return new Node(NUMBER, "", value);
 }
 
 // Un nome seguito da '(' e' una funzione, altrimenti deve essere una variabile.
-Node* Function::parseIdentificatore(const std::string& funz, size_t* posizione) const {
-    std::string nome = leggiNome(funz, posizione);
-    if (nome.empty()) throw std::invalid_argument("Carattere inatteso in posizione " + std::to_string(*posizione));
+Node* Function::parseIdentifier(const std::string& func, size_t* position) const {
+    std::string name = readName(func, position);
+    if (name.empty()) throw std::invalid_argument("Carattere inatteso in posizione " + std::to_string(*position));
 
-    if (*posizione < funz.length() && funz[*posizione] == '(')
-        return parseFunzione(nome, funz, posizione);
+    if (*position < func.length() && func[*position] == '(')
+        return parseFunction(name, func, position);
 
-    if (nome == "x" || nome == "y")
-        return new Node(VARIABILE, nome, 0);
+    if (name == "x" || name == "y")
+        return new Node(VARIABLE, name, 0);
 
-    throw std::invalid_argument("Identificatore sconosciuto: " + nome);
+    throw std::invalid_argument("Identificatore sconosciuto: " + name);
 }
 
 // nomeFunzione '(' espressione ')'
-Node* Function::parseFunzione(const std::string& nome, const std::string& funz, size_t* posizione) const {
-    if (funzioni.count(nome) == 0) throw std::invalid_argument("Funzione sconosciuta: " + nome);
-    *posizione += 1;  // salta '('
+Node* Function::parseFunction(const std::string& name, const std::string& func, size_t* position) const {
+    if (functions.count(name) == 0) throw std::invalid_argument("Funzione sconosciuta: " + name);
+    *position += 1;  // salta '('
 
-    Node* argomento = parseExpression(funz, posizione);
-    consumaParentesiChiusa(funz, posizione);
+    Node* argument = parseExpression(func, position);
+    consumeClosingParenthesis(func, position);
 
-    Node* nodoFunz = new Node(FUNZIONE, nome, 0);
-    nodoFunz->setLeftPtr(argomento);
-    return nodoFunz;
+    Node* functionNode = new Node(FUNCTION, name, 0);
+    functionNode->setLeftPtr(argument);
+    return functionNode;
 }
