@@ -133,20 +133,23 @@ std::string numberToString(double v) {
 // Node
 // ===========================================================================
 
+// Valuta l'albero ricorsivamente, es. (sin(x) + 2)
+//  - NUMBER e VARIABLE casi base.
+//  - FUNCTION e OPERATOR calcolano prima i figli e poi applicano l'operazione
 double Node::calculate(const Vector2& vec) const {
     switch (type) {
-        case NUMBER:
+        case NUMBER:    // caso base: 2 -> 2
             return number;
 
-        case VARIABLE:
+        case VARIABLE:  // caso base: x -> vec.x
             return (typeName == "x") ? vec.x : vec.y;
 
-        case FUNCTION: {
+        case FUNCTION: {  // sin(t): calcolo l'argomento e applica sin
             if (!leftPtr) throw std::runtime_error("Funzione senza argomento");
             return functions.at(typeName).function(leftPtr->calculate(vec));
         }
 
-        case OPERATOR: {
+        case OPERATOR: {  // (t + 2): calcolo sx e dx e poi operatore
             if (!leftPtr || !rightPtr) throw std::runtime_error("Operatore senza operandi");
             return operators.at(typeName).function(leftPtr->calculate(vec), rightPtr->calculate(vec));
         }
@@ -154,17 +157,18 @@ double Node::calculate(const Vector2& vec) const {
     throw std::runtime_error("Errore nel calcolo degli operandi");
 }
 
+// Come calculate ma ritorna anche il gradiente (valore, dx, dy).
 ValGrad Node::calculateGradient(const Vector2 &vec) const {
     switch (type) {
-        case NUMBER:
+        case NUMBER:    // caso base: costante, gradiente 0
             return ValGrad{number, 0,0};
-        case VARIABLE: {
+        case VARIABLE: {  // caso base: x -> (1,0), y -> (0,1)
             return (typeName == "x") ? ValGrad{vec.x, 1.0, 0} : ValGrad{vec.y, 0,1};
         }
 
         // Regola catena, esempio:
         // grad f(t) -> f' * grad t
-        case FUNCTION: {
+        case FUNCTION: {  // es. sin(x*y): prima il gradiente di x*y, poi si calcola la funzione
             if (!leftPtr) throw std::runtime_error("Funzione senza argomento");
             double(*derivative)(double) = functions.at(typeName).derivative;
             double(*function)(double) = functions.at(typeName).function;
@@ -179,7 +183,7 @@ ValGrad Node::calculateGradient(const Vector2 &vec) const {
 
         }
 
-        case OPERATOR: {
+        case OPERATOR: {  // es. (x*y) + 2: gradiente di sx e dx e poi operatore.
             if (!leftPtr || !rightPtr) throw std::runtime_error("Funzione senza argomento");
 
             double(*function)(double, double) = operators.at(typeName).function;
@@ -217,22 +221,24 @@ ValGrad Node::calculateGradient(const Vector2 &vec) const {
     throw std::runtime_error("Errore nel calcolo della derivata");
 }
 
+// Stampa l'albero con le parentesi, es. (sin(x) + 2)
+// Numeri e variabili sono i casi base, gli altri chiamano toString sui figli.
 std::string Node::toString() const {
     switch (type) {
-        case NUMBER: {
+        case NUMBER: {  // caso base: 2 -> "2", -2 -> "(-2)"
             std::string text = numberToString(number);
             return (number < 0) ? "(" + text + ")" : text;
         }
 
-        case VARIABLE:
+        case VARIABLE:  // caso base: x -> "x"
             return typeName;
 
-        case FUNCTION: {
+        case FUNCTION: {  // sin(t): stampa l'argomento tra parentesi
             std::string arg = leftPtr ? leftPtr->toString() : "<mancante>";
             return typeName + "(" + arg + ")";
         }
 
-        case OPERATOR: {
+        case OPERATOR: {  // (t + 2): stampa sx e dx e li unisce con l'operatore
             std::string left  = leftPtr  ? leftPtr->toString()  : "<mancante>";
             std::string right = rightPtr ? rightPtr->toString() : "<mancante>";
             return "(" + left + " " + typeName + " " + right + ")";
@@ -277,7 +283,11 @@ Vector2 Function::gradientApprox(const Vector2& vec) const {
 // ===========================================================================
 // Function: parsing
 // ===========================================================================
-
+//
+// Le funzioni del parser si chiamano a vicenda, lo schema è:
+//   expression -> operand
+//   operand    -> "( expression )" o "numero" o "variabile" o "nome( expression )"
+// Ritorna false se ci sono stati errori nel parsing.
 bool Function::parseFullParentheses(const std::string& str) {
     delete root;
     root = nullptr;
@@ -298,6 +308,8 @@ bool Function::parseFullParentheses(const std::string& str) {
 }
 
 
+// Funzione "generale" del parser: legge operand e lega le due parti in un nodo OPERATOR.
+// Es. "x+2" -> nodo '+' con figli x e 2.
 Node* Function::parseExpression(const std::string& func, size_t* position) const {
     Node* leftNode = parseOperand(func, position);
 
@@ -323,6 +335,10 @@ Node* Function::parseExpression(const std::string& func, size_t* position) const
     }
 }
 
+// Decide che tipo di operando c'è e delega al pezzetto giusto:
+//   "(x+2)"        -> parseParentheses
+//   "3.5"          -> parseNumber
+//   "x" / "sin(x)" -> parseIdentifier
 Node* Function::parseOperand(const std::string& func, size_t* position) const {
     if (*position >= func.length()) throw std::invalid_argument("Errore parseOperand: stringa finita");
 
@@ -337,6 +353,8 @@ Node* Function::parseOperand(const std::string& func, size_t* position) const {
 }
 
 
+// Salta la '(' e riparte da parseExpression per leggere quello che c'è dentro
+// (qui avviene la ricorsione per le parentesi annidate), poi chiude la ')'.
 Node* Function::parseParentheses(const std::string& func, size_t* position) const {
     *position += 1;  // salta '('
     Node* node = parseExpression(func, position);
@@ -358,7 +376,9 @@ Node* Function::parseNumber(const std::string& func, size_t* position, size_t le
     return new Node(NUMBER, "", value);
 }
 
-// Un nome seguito da '(' e' una funzione, altrimenti deve essere una variabile.
+// Caso base: "x" o "y" diventano nodi VARIABLE.
+// Se invece dopo il nome c'è '(' è una funzione, es. "sin(x)" -> parseFunction.
+// Un nome seguito da '(' è una funzione, altrimenti deve essere una variabile.
 Node* Function::parseIdentifier(const std::string& func, size_t* position) const {
     std::string name = readName(func, position);
     if (name.empty()) throw std::invalid_argument("Carattere inatteso in posizione " + std::to_string(*position));
@@ -373,6 +393,7 @@ Node* Function::parseIdentifier(const std::string& func, size_t* position) const
 }
 
 // nomeFunzione '(' espressione ')'
+// L'argomento è una expression qualsiasi, es. sin(x+2) o cos(sin(x)), e poi richiama parseExpression.
 Node* Function::parseFunction(const std::string& name, const std::string& func, size_t* position) const {
     if (functions.count(name) == 0) throw std::invalid_argument("Funzione sconosciuta: " + name);
     *position += 1;  // salta '('
