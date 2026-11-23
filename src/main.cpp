@@ -1,7 +1,8 @@
 #include <iostream>
-#include <cmath>
 #include <string>
 #include <ctime>
+#include <limits>
+#include <cstdlib>
 #include "../include/function.h"
 #include "../include/minimizer.h"
 
@@ -12,6 +13,30 @@ double getRandomDouble(double min, double max) {
     return min + (max - min) * (double)rand() / RAND_MAX;
 }
 
+//Lettura di un intero
+int getInt(const string& messaggio) {
+    int valore;
+    cout << messaggio;
+    while (!(cin >> valore)) {
+        cout << "Input non valido. Inserisci un numero intero: ";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    }
+    return valore;
+}
+
+// Lettura di un double
+double getDouble(const string& messaggio) {
+    double valore;
+    cout << messaggio;
+    while (!(cin >> valore)) {
+        cout << "Input non valido. Inserisci un numero reale: ";
+        cin.clear();
+        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    }
+    return valore;
+}
+
 int main() {
     srand(time(0));
     
@@ -19,19 +44,15 @@ int main() {
     int N;
 
     //Inserimento iniziale del gradiente
-    cout << "Soglia sulla norma del gradiente T (T>0): ";
-    cin >> T;
+    T = getDouble("Soglia sulla norma del gradiente T (T>0): ");
     while (T <= 0) {
-        cout << "T deve essere maggiore di 0. Riprova: ";
-        cin >> T;
+        T = getDouble("T deve essere maggiore di 0. Riprova: ");
     }
     
     //Inserimento iniziale del numero di iterazioni
-    cout << "Numero massimo di iterazioni N (N>0): ";
-    cin >> N;
+    N = getInt("Numero massimo di iterazioni N (N>0): ");
     while (N <= 0) {
-        cout << "N deve essere maggiore di 0. Riprova: ";
-        cin >> N;
+        N = getInt("N deve essere maggiore di 0. Riprova: ");
     }
 
     //Conversione di E e PI in stringa
@@ -68,8 +89,7 @@ int main() {
         cout << "3: Cambia parametri (T e N)" << endl;
         cout << "4: Visualizza configurazione attuale" << endl;
         cout << "5: Uscita" << endl;
-        cout << "Scelta: ";
-        cin >> scelta;
+        scelta = getInt("Scelta: ");
         
         //Uscita
         if (scelta == 5) {
@@ -98,8 +118,8 @@ int main() {
         //2: Lettura valore manuale e test su tutte le funzioni
         else if (scelta == 2) {
             Vector2 start_pos;
-            cout << "Inserisci punto di partenza (x y): ";
-            cin >> start_pos.x >> start_pos.y;
+            start_pos.x = getDouble("Inserisci coordinata x: ");
+            start_pos.y = getDouble("Inserisci coordinata y: ");
             
             for (int i = 0; i < 8; i++) {
                 cout << "\n--- Minimizzazione f[" << i << "] ---" << endl;
@@ -109,23 +129,19 @@ int main() {
         
         //3: Cambio valori T e N
         else if (scelta == 3) {
-            cout << "\nNuova soglia T (attuale = " << T << "): ";
-            cin >> T;
+            T = getDouble("\nNuova soglia T (attuale = " + to_string(T) + "): ");
             while (T <= 0) {
-                cout << "T deve essere maggiore di 0. Riprova: ";
-                cin >> T;
+                T = getDouble("T deve essere maggiore di 0. Riprova: ");
             }
 
-            cout << "Nuovo max iterazioni N (attuale = " << N << "): ";
-            cin >> N;
+            N = getInt("Nuovo max iterazioni N (attuale = " + to_string(N) + "): ");
             while (N <= 0) {
-                cout << "N deve essere maggiore di 0. Riprova: ";
-                cin >> N;
+                N = getInt("N deve essere maggiore di 0. Riprova: ");
             }
             cout << "Parametri aggiornati con successo!" << endl;
         }
 
-        //Visualizzazione valori T e N
+        //4: Visualizzazione valori T e N
         else if (scelta == 4) {
             cout << "\nConfigurazione attuale: " << endl;
             cout << "Soglia gradiente T: " << T << endl;
