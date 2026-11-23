@@ -7,6 +7,7 @@
 
 using namespace std;
 
+// Generazione randomica double
 double getRandomDouble(double min, double max) {
     return min + (max - min) * (double)rand() / RAND_MAX;
 }
@@ -17,6 +18,7 @@ int main() {
     double T;
     int N;
 
+    //Inserimento iniziale del gradiente
     cout << "Soglia sulla norma del gradiente T (T>0): ";
     cin >> T;
     while (T <= 0) {
@@ -24,6 +26,7 @@ int main() {
         cin >> T;
     }
     
+    //Inserimento iniziale del numero di iterazioni
     cout << "Numero massimo di iterazioni N (N>0): ";
     cin >> N;
     while (N <= 0) {
@@ -31,15 +34,17 @@ int main() {
         cin >> N;
     }
 
+    //Conversione di E e PI in stringa
     string str_e  = to_string(M_E);
     string str_pi = to_string(M_PI);
 
+    //Definizione domini specificati
     Domain domain1 = Domain{Interval(-4,4)};
     Domain domain2 = Domain{Interval(-1.5,1.5)};
     Domain domain3 = Domain{Interval(-2,2)};
 
-
-    Function f[8] = {// da aggiungere step dal pdf
+    //Creazione dell'array con le 8 funzioni richieste
+    Function f[8] = {
         Function("((x^2) + (y^2)) / 2", domain1, 1.0/5),
         Function("((x^2) + (16 * (y^2))) / 2", domain1, 2.0/25),
         Function("(((x^2) - 1)^2) + (y^2)", domain2, 1.0/20),
@@ -50,10 +55,12 @@ int main() {
         Function("(2 - cos(" + str_pi + " * x)) - cos(" + str_pi + " * y)", domain1, 1.0/10),
     };
     
+    //Limiti dei domini per i punti casuali
     double limiti_dominio[8] = {4.0, 4.0, 1.5, 1.5, 2.0, 4.0, 1.5, 4.0};
     
     int scelta = 0;
     
+    //Ciclo del menu principale
     while (true) {
         cout << "\nScegliere un'opzione per il test di convergenza: " << endl;
         cout << "1: Randomico dentro il dominio" << endl;
@@ -64,16 +71,19 @@ int main() {
         cout << "Scelta: ";
         cin >> scelta;
         
+        //Uscita
         if (scelta == 5) {
             cout << "Uscita dal programma." << endl;
             break;
         }
         
+        //Controllo range inserito
         if (scelta < 1 || scelta > 5) {
             cout << "Opzione non valida. Riprova." << endl;
             continue;
         }
         
+        //1: Genera un punto casuale nel dominio do ogni funzione ed esegue i test
         if (scelta == 1) {
             for (int i = 0; i < 8; i++) {
                 double rx = getRandomDouble(-limiti_dominio[i], limiti_dominio[i]);
@@ -85,6 +95,7 @@ int main() {
             }
         }
 
+        //2: Lettura valore manuale e test su tutte le funzioni
         else if (scelta == 2) {
             Vector2 start_pos;
             cout << "Inserisci punto di partenza (x y): ";
@@ -96,6 +107,7 @@ int main() {
             }
         }
         
+        //3: Cambio valori T e N
         else if (scelta == 3) {
             cout << "\nNuova soglia T (attuale = " << T << "): ";
             cin >> T;
@@ -113,6 +125,7 @@ int main() {
             cout << "Parametri aggiornati con successo!" << endl;
         }
 
+        //Visualizzazione valori T e N
         else if (scelta == 4) {
             cout << "\nConfigurazione attuale: " << endl;
             cout << "Soglia gradiente T: " << T << endl;
