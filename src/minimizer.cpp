@@ -1,4 +1,4 @@
-#include "minimizer.h"
+#include "../include/minimizer.h"
 #include <iostream>
 
 using namespace std;
@@ -40,7 +40,7 @@ void mimimizeFunction(const Function& f, const int MAX_ITERATIONS, const double 
         if (i % 10 == 0) {
             cout << i << "\t" << pos << "\t" << f.evaluate(pos) << "\t" << grad.mod() << endl;
         }
-        
+
     }
 
     // Raggiunto il limite massimo di iterazioni
