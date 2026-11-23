@@ -57,7 +57,7 @@ class Interval {
             return aboveMin && belowMax;
         }
 
-        Interval();
+        Interval() = default;
         Interval(double a, double b, bool minIncluded=true, bool maxIncluded=true): min(a), max(b), minIncluded(minIncluded), maxIncluded(maxIncluded) {};
 
     private:
@@ -99,7 +99,7 @@ class Function {
         double getStep() const {return step;}
 
         void setDomain(Domain dom) {domain = dom;}
-        void setStep(double step) {step = step;};
+        void setStep(double step) {this->step = step;};
 
         // Calcolo valore esatto e gradiente.
         double evaluate(const Vector2& vec) const;
