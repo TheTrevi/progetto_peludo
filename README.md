@@ -1,21 +1,25 @@
-Progetto peludo by Simone Serafin, Alessio Pantarotto, Davide Trevisan
+README
 
-Il progetto risulta completo
+Stato del progetto: Completo.
 
-Riguardo le scelte chiave:
-- Abbiamo utilizato una funzione non ricorsiva per calcolare il minimio
-- Abbiamo utilizato una classe Function per gestire le funzioni e i gradienti
+SCELTE ARCHITETTURALI PRINCIPALI
+- Classe Function: centralizza la gestione delle funzioni matematiche e dei relativi gradienti.
+- Minimizzazione iterativa: il calcolo del minimo avviene tramite una funzione non ricorsiva.
+- Nel main viene gestito tutta la parte di comunicazione con l'utente.
 
-Riguardo le altre carrateristiche del progetto:
-- Abbiamo aggiunto una classe Vector2 per facilitare il lavoro con punti e gradienti
-- Function e' stata creata in modo da riuscire a comprendere la funzione da una stringa e calcolarne autonomamente valore e gradiente
-- Nel main dopo aver richiesto gli input costruiamo le 8 funzioni richieste dinamicamente partendo dalla rappresentazione testuale di esse
+CARATTERISTICHE DEL PROGETTO
+- Parsing e calcolo autonomo in Function: la classe interpreta una funzione a partire dalla sua rappresentazione testuale in 
+  stringa e calcola autonomamente sia il valore che il gradiente.
+- Classe Vector2: supporta le operazioni su punti bidimensionali e gradienti in modo chiaro e riutilizzabile.
+- Costruzione dinamica nel main: dopo aver acquisito gli input dall'utente, il programma istanzia dinamicamente le 8 funzioni 
+  richieste a partire dalle rispettive espressioni testuali.
 
-Riguardo la divisione del lavoro:
-- Simone Serafin: minimizer, Vector2
-- Alessio Pantarotto: main
-- Davide Trevisan: Function
+DIVISIONE DEL LAVORO
+- Alessio Pantarotto: main.cpp
+- Simone Serafin: minimizer.h, vector2.h, minimizer.cpp, vector2.cpp
+- Davide Trevisan: function.h, function.cpp
 
-Note aggiuntive:
-- Siamo coscenti che il codice potrebbe non rispettare le convenzioni insegnate a lezione a causa di nostre conoscenze pregresse di C++
-- Siamo coscenti che il codice di function è più complesso del necessario, sia rispetto all'uso che ne viene fatto nel nostro progetto, sia rispetto alla consegna richiesta
+NOTE AGGIUNTIVE
+- Stile e convenzioni C++: alcune scelte stilistiche o costruttive riflettono conoscenze pregresse di C++
+- Complessità della classe Function: l'implementazione di Function è più ampia e articolata rispetto sia all'effettivo
+  utilizzo nel resto del progetto sia ai requisiti minimi della consegna.

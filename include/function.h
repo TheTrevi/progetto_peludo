@@ -60,6 +60,9 @@ class Interval {
         Interval() = default;
         Interval(double a, double b, bool minIncluded=true, bool maxIncluded=true): min(a), max(b), minIncluded(minIncluded), maxIncluded(maxIncluded) {};
 
+        double getLowerBound() {return min;}
+        double getUpperBound() {return max;}
+
     private:
         double min = -std::numeric_limits<double>::infinity();
         double max =  std::numeric_limits<double>::infinity();
@@ -75,6 +78,10 @@ class Domain {
         bool contains(const Vector2& vec) const {
             return x.contains(vec.x) && y.contains(vec.y);
         }
+
+        Interval getXInterval() {return x;}
+        Interval getYInterval() {return y;}
+
     private:
         Interval x;
         Interval y;
