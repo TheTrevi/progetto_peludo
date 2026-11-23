@@ -19,8 +19,8 @@ int main() {
     string str_pi = to_string(M_PI);
 
     Domain domain1 = Domain{Interval(-4,4)};
-    Domain domain3 = Domain{Interval(-1.5,1.5)};
-    Domain domain2 = Domain{Interval(-2,2)};
+    Domain domain2 = Domain{Interval(-1.5,1.5)};
+    Domain domain3 = Domain{Interval(-2,2)};
 
 
     Function f[8] = {// da aggiungere step dal pdf
