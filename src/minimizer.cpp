@@ -15,6 +15,20 @@ void mimimizeFunction(const Function& f, const int MAX_ITERATIONS, const double 
         // Calcolo del gradiente nel punto corrente
         grad = f.gradient(pos);
 
+
+        // Calcolo del versore del gradiente e aggiornamento posizione
+        Vector2 norm = grad.norm();
+        pos -= norm * f.getStep();
+
+
+        // Controllo che il nuovo punto sia nel dominio
+        if (!f.getDomain().contains(pos)) {
+            cout << "OUT_OF_DOMAIN" << endl;
+            cout << i << "\t" << pos << "\t" << f.evaluate(pos) << "\t" << grad.mod() << endl;
+            return;
+        }
+
+
         // Controllo del criterio di arresto sul modulo del gradiente
         if (grad.mod() < STOP_NORM) {
             cout << "STOP_NORM_REACHED" << endl;
@@ -22,14 +36,11 @@ void mimimizeFunction(const Function& f, const int MAX_ITERATIONS, const double 
             return;
         }
 
-        // Calcolo del versore del gradiente e aggiornamento posizione
-        Vector2 norm = grad.norm();
-        pos -= norm * 0.1; //f.getStep();
-
         // Stampa periodica dello stato ogni 10 iterazioni
         if (i % 10 == 0) {
             cout << i << "\t" << pos << "\t" << f.evaluate(pos) << "\t" << grad.mod() << endl;
         }
+        
     }
 
     // Raggiunto il limite massimo di iterazioni
