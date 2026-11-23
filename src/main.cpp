@@ -32,14 +32,8 @@ int main() {
     Vector2 start_pos(1.0, 1.0); // da acquisire in input
 
     for (int i = 0; i < 8; i++) {
-        cout << "\n---f[" << i << "] = "<< f[i].toString() <<" ---" << endl;
-        cout << "valore in 1.0,1.0 :" << f[i].evaluate(start_pos) << endl;
-        cout << "derivata in " << start_pos << ": " << f[i].gradient(start_pos) << " approx: "<< f[i].gradientApprox(start_pos) << endl;
-    }
-
-    for (int i = 0; i < 8; i++) {
         cout << "\n--- Minimizzazione f[" << i << "] ---" << endl;
-        minimizer(f[i], N, T, start_pos);
+        mimimizeFunction(f[i], N, T, start_pos);
     }
 
     return 0;
